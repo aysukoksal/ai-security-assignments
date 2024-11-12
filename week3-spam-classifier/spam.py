@@ -1,79 +1,70 @@
+import nltk
+
+from nltk.corpus import stopwords
+
+import glob
 import re
 
 from collections import Counter 
-import pandas as pd
-import matplotlib.pyplot as plt
+import os
+f = os.listdir("ex03-data/spam-train")
+# All files and directories ending with .txt and that don't begin with a dot:
+file_spam= glob.glob("ex03-data/spam-train/*.spam.txt")
+#print(f"these are spam files \n{file_spam}")
+stop_words= set(stopwords.words('english'))
+spam_language = set()
+spam_total_counter= Counter()
+def read_spam_msg(directory):
+    file_spam = glob.glob(f"{directory}/*.spam.txt")
+    for file in file_spam:
+        with open(file, "r", encoding='latin-1') as f:  # Use 'with' for safe file handling
+            file_content = f.read()
+
+        words= re.findall(r'\b\w+', file_content.lower())
+        for word in words:
+            if word not in stop_words:
+                spam_language.add(word)
+                spam_total_counter.update([word])
 
 
+read_spam_msg("ex03-data/spam-train")
 
-examples = [
-    "They call it a Royale with cheese.",
-    "A Royale with cheese. What do they call a Big Mac?",
-    "Well, a Big Mac is a Big Mac, but they call it le Big-Mac.",
-    "Le Big-Mac. Ha ha ha ha. What do they call a Whopper?"
-]
-language = set()
-all_sentences= []
-for sentence in examples:
-    each_sentence = Counter()
-    words= re.findall(r'\b\w+', sentence.lower())
-    language.update(words)
-    each_sentence.update(words)
-    all_sentences.append(each_sentence)
+#print("\nVocabulary (spam_language):\n", spam_language)
+
+def average_frequency_spam(spam_language, spam_total_counter):
+    avg_frq_dict= {}
+    no_words_spam= sum(spam_total_counter.values())
+    for word in spam_language:
+        avg_freq = spam_total_counter[word]/no_words_spam
+        avg_frq_dict[word]= avg_freq
+    return avg_frq_dict
+
     
 
-kernel_matrices= {}
-def calculate_score(all_sentences, d):
-    score_table = [[0] * 4 for _ in range(4)]
-    for i, mainsentence in enumerate(all_sentences, start=0):
-        for j, comparedsentence in enumerate(all_sentences, start=0):
-            for key, value in mainsentence.items():
-                if key in comparedsentence:
-                    score= value*comparedsentence[key]
-                    score_table[i][j]=score_table[i][j]+score
-            score_table[i][j]= score_table[i][j]**d
-    kernel_matrices[d]= score_table
-    
+dict_spam=average_frequency_spam(spam_language, spam_total_counter)
+print(dict_spam)
 
-for d in [1,2,3,4]:
-    calculate_score(all_sentences, d)
 
-def pretty_print(kernel_matrices):
-    for d, score_table in kernel_matrices.items():
-        print(f"Kernel matrix for d = {d}:")
-        score_df = pd.DataFrame(score_table, columns=["S1", "S2", "S3", "S4"], index=["S1", "S2", "S3", "S4"])
-        print(score_df)
-        print()
-pretty_print(kernel_matrices)
 
-def plot_kernel_matrices(kernel_matrices):
-    fig, axes = plt.subplots(1, 4, figsize=(20, 5))  # Adjust the figure size if needed
-    
-    # Loop through each d value and corresponding score table
-    for idx, (d, score_table) in enumerate(kernel_matrices.items()):
-        ax = axes[idx]  # Select the current axis
-        cax = ax.imshow(score_table, cmap='gray_r', interpolation='nearest')
-        ax.set_title(f"d = {d}")
-        ax.set_xticks(range(4))
-        ax.set_xticklabels(["S1", "S2", "S3", "S4"])
-        ax.set_yticks(range(4))
-        ax.set_yticklabels(["S1", "S2", "S3", "S4"])
-    
-    # Add a color bar for the last plot, which will apply to all subplots
-    fig.colorbar(cax, ax=axes, orientation='horizontal', fraction=0.02, pad=0.1, label='Score')
-    plt.show()
+ham_language = set()
+ham_total_counter= Counter()
+file_ham = glob.glob("ex03-data/spam-train/*.ham.txt")
+for file in file_ham:
+    with open(file, "r", encoding="ISO-8859-1") as f:  # Use 'with' for safe file handling
+        file_content = f.read()
 
-# Call the plotting function
-plot_kernel_matrices(kernel_matrices)
+    each_file = Counter()
+    words= re.findall(r'\b\w+', file_content.lower())
+    ham_language.update(words)
+    ham_total_counter.update(words)
+
+no_words_ham= sum(ham_total_counter.values()) 
 
 
 
 
+#print("\nVocabulary (spam_language):\n", spam_language)
+#print("\nVocabulary (ham_sentences):\n", ham_total_counter)
 
-
-
-
-
-
-
-
+#print("\nWord counts in each file (spam_sentences):\n", spam_sentences)
+#print("\nWord counts in each file (ham_sentences):\n", ham_sentences)
